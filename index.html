@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sorry Bud! - The Game</title>
+    
+    <!-- Nota: Deberías actualizar el logo.png por algo más canadiense, como una hoja de arce o un castor -->
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#D32F2F"> <!-- Rojo Canadiense -->
+
+    <style>
+        /* --- BLOQUEO TOTAL DE INTERFAZ --- */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            outline: none !important;
+            caret-color: transparent !important;
+        }
+
+        /* EXCEPCIÓN: Solo el buzón de sugerencias puede tener cursor */
+        textarea {
+            caret-color: #000 !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            cursor: text !important;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        body { 
+            font-family: 'Arial Black', sans-serif; 
+            /* Cambio de color de fondo a algo más "Raincouver" (gris claro) */
+            background-color: #f0f2f5; 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center; 
+            flex-direction: column; 
+            color: #222;
+        }
+
+        /* TEXTOS INTOCABLES */
+        h1, h2, h3, p, div, span, .big-text {
+            cursor: default;
+            pointer-events: none; 
+        }
+        
+        /* EXCEPCIONES INTERACTIVAS */
+        button, a, .region-option label, .link-discreto, input, textarea {
+            pointer-events: auto;
+        }
+
+        .screen { display: none; width: 90%; max-width: 400px; height: 100%; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; position: relative; }
+        .active { display: flex; }
+        
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 8px 8px 0 #D32F2F; /* Sombra roja */
+            border: 4px solid #222; 
+            width: 100%; 
+            margin-bottom: 20px; 
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        
+        /* Botones principales rojos */
+        button { background-color: #D32F2F; color: white; border: none; padding: 18px; font-size: 1.1rem; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; text-transform: uppercase; box-shadow: 4px 4px 0 rgba(0,0,0,0.3); transition: transform 0.1s; touch-action: manipulation; margin-bottom: 10px; border: 3px solid #222;}
+        button:active { transform: scale(0.96); }
+        button:focus { outline: none; }
+        
+        /* Botones secundarios blancos con borde rojo */
+        .btn-secondary { background: white; color: #D32F2F; border: 3px solid #D32F2F; }
+        
+        /* ESTILO BOTÓN OMITIR (Un rojo más oscuro o naranja para alerta) */
+        .btn-omitir {
+            background-color: #C62828; 
+            color: white;
+            border: 3px solid #222;
+            padding: 15px;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.2;
+        }
+        
+        /* INPUTS */
+        input[type="text"], textarea { 
+            padding: 15px; font-size: 1.2rem; border-radius: 10px; border: 3px solid #D32F2F; width: 85%; text-align: center; margin-bottom: 15px; font-family: 'Arial', sans-serif; 
+            box-shadow: none; outline: none; 
+            -webkit-user-select: text !important; 
+            user-select: text !important;
+            caret-color: #000; 
+        }
+        input:disabled {
+            background-color: #eee;
+            color: #999;
+            border-color: #ccc;
+            caret-color: transparent !important; 
+        }
+
+        .region-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-bottom: 20px; }
+        .region-option { position: relative; }
+        .region-option input { display: none; }
+        .region-option label { 
+            display: block; background: #fff; border: 3px solid #D32F2F; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.9rem; color: #D32F2F; transition: 0.2s; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); pointer-events: auto; font-weight: bold;
+        }
+        /* Estado seleccionado: Rojo sólido */
+        .region-option input:checked + label { background: #D32F2F; color: #fff; border-color: #222; transform: scale(1.02); box-shadow: 4px 4px 0 rgba(0,0,0,0.2); }
+        .region-option input:disabled + label { background: #e0e0e0; color: #555; border-color: #999; cursor: default; pointer-events: none; }
+
+        /* CHECKBOX PENITENCIA (Dare) */
+        .penitencia-check input:checked + label {
+            background: #222; 
+            color: #D32F2F;
+            border-color: #D32F2F;
+        }
+
+        h1 { line-height: 1; margin-bottom: 5px; color: #D32F2F; }
+        h2 { font-size: 1.4rem; color: #222; margin-bottom: 15px; }
+        .big-text { font-size: 6rem; margin: 10px 0; color: #D32F2F; cursor: default; pointer-events: none; line-height: 1; }
+        #tema-display { font-size: 1.4rem; line-height: 1.2; word-wrap: break-word; cursor: default; pointer-events: none; color: #222; }
+        
+        /* Botones de velocidad */
+        .btn-peque { background-color: #D32F2F; border: 3px solid #222; } /* Rápido - Rojo */
+        .btn-medio { background-color: #FF9800; border: 3px solid #222; } /* Medio - Naranja */
+        .btn-grande { background-color: #4CAF50; border: 3px solid #222; } /* Lento - Verde */
+
+        #screen-loading { background-color: #222; color: #fff; font-family: 'Courier New', monospace; text-align: left; padding: 20px; }
+        .log-line { margin-bottom: 5px; font-size: 0.8rem; white-space: nowrap; border-right: 2px solid #D32F2F; }
+        .loader-bar { width: 100%; height: 12px; background: #111; border: 1px solid #D32F2F; margin-top: 20px; }
+        .loader-progress { width: 0%; height: 100%; background: #D32F2F; transition: width 0.4s; }
+        
+        .link-discreto { background: transparent; border: none; color: #555; font-size: 0.85rem; text-decoration: underline; margin-top: 15px; padding: 10px; box-shadow: none; text-transform: none; opacity: 0.9; cursor: pointer; }
+
+        .scroll-content { width: 100%; max-height: 60vh; overflow-y: auto; text-align: left; background: rgba(255,255,255,0.95); border: 3px solid #D32F2F; border-radius: 15px; padding: 15px; box-sizing: border-box; margin-bottom: 15px; font-family: 'Arial', sans-serif; font-size: 0.9rem; line-height: 1.4; color: #222; pointer-events: auto; }
+        .scroll-content * { pointer-events: auto; } 
+        .scroll-content h3 { margin-top: 15px; color: #D32F2F; font-family: 'Arial Black', sans-serif; font-size: 1rem; text-transform: uppercase; pointer-events: none; }
+        .scroll-content h3:first-child { margin-top: 0; }
+
+        /* LOGO EN HOME */
+        .logo-main { width: 150px; height: 150px; object-fit: contain; margin-bottom: 10px; filter: drop-shadow(5px 5px 0px #D32F2F); pointer-events: none; }
+
+        /* MODAL DE EXPLOSIÓN */
+        #modal-explosion {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: shake 0.5s;
+        }
+        #modal-explosion.active { display: flex !important; }
+        
+        .modal-content {
+            background: #fff;
+            border: 5px solid #D32F2F;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(211, 47, 47, 0.5);
+            pointer-events: auto;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+
+    <!-- MODAL EXPLOSIÓN (Oculto por defecto) -->
+    <div id="modal-explosion">
+        <div class="modal-content">
+            <h1 style="color:#D32F2F; font-size:3rem; margin:0;">KA-BOOM!</h1>
+            <h2 style="margin-top:0; color:#222;">SORRY BUD!</h2>
+            <div id="modal-mensaje" style="font-size:1.3rem; font-weight:bold; margin:20px 0; line-height:1.2; color:#222;">...</div>
+            
+            <div style="display:flex; gap:10px;">
+                <!-- Botón para "gallinas" o "hosers" -->
+                <button onclick="soyUnaLoca()" style="background:#fff; color:#D32F2F; width:50%; font-size:1rem; padding:15px; border:3px solid #D32F2F;">I'M A HOSER! 😭</button>
+                <button onclick="aceptarReto()" style="background:#D32F2F; color:#fff; width:50%; font-size:1rem; padding:15px;">SEND IT! 🍻</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN (Desactivado visualmente) -->
+    <div id="screen-login" class="screen">
+        <!-- Usa un logo placeholder si no carga -->
+        <img src="logo.png" style="width:110px;" onerror="this.style.display='none'; document.getElementById('alt-logo').style.display='block'">
+        <h1 id="alt-logo" style="display:none; color:#D32F2F; font-size: 3rem;">🇨🇦</h1>
+        <h2>ACTIVATE LICENSE</h2>
+        <input type="text" id="pass-input" placeholder="enter code, eh?">
+        <button onclick="verificarClave()">ACTIVATE</button>
+    </div>
+
+    <!-- LOADING -->
+    <div id="screen-loading" class="screen">
+        <div id="log-container"></div>
+        <div class="loader-bar"><div id="loader-fill" class="loader-progress"></div></div>
+        <p style="text-align:center; color:#fff; margin-top:15px; font-size:0.75rem;">WARMING UP THE DOUBLE-DOUBLE...</p>
+    </div>
+
+    <!-- HOME -->
+    <div id="screen-home" class="screen active">
+        <img src="logo.png" class="logo-main" alt="Sorry Bud Logo" onerror="this.style.display='none'; document.getElementById('alt-home-logo').style.display='block'">
+        <h1 id="alt-home-logo" style="display:none; color:#D32F2F; font-size: 5rem; margin:0;">🍁</h1>
+        
+        <h1 style="font-size: 2.5rem; margin-top:0;">SORRY BUD!</h1>
+        <p style="margin-bottom: 20px; color:#555;">Careful, she's gonna blow, eh?</p>
+        
+        <button onclick="showScreen('screen-setup')" style="background-color: #D32F2F; color: #fff; height: 70px; font-size: 1.4rem;">START THE EH-GAME! 🏒</button>
+        
+        <div style="display: flex; gap: 10px; width: 100%;">
+            <button onclick="showScreen('screen-install')" class="btn-secondary" style="font-size: 0.8rem; padding: 10px;">📲 GET THE APP</button>
+            <button onclick="showScreen('screen-instructions')" class="btn-secondary" style="font-size: 0.8rem; padding: 10px;">❓ HOW TO PLAY</button>
+        </div>
+        <button onclick="compartirApp()" class="btn-secondary" style="margin-top:0; font-size: 0.9rem; padding: 12px; background:#fff; color:#D32F2F; border: 2px dashed #D32F2F;">📢 SHARE WITH THE BUDS</button>
+        <button onclick="showScreen('screen-sugerencias')" class="link-discreto" style="opacity:0.7; font-size:0.8rem;">💡 Suggestions & Ideas</button>
+        <button onclick="actualizarApp()" id="btn-update" class="link-discreto" style="opacity:0.5; font-size:0.7rem; margin-top:20px;">🔄 Check for Updates</button>
+    </div>
+
+    <!-- INSTRUCCIONES -->
+    <div id="screen-instructions" class="screen">
+        <h2 style="margin-bottom: 10px;">HOW TO PLAY, EH?</h2>
+        <div class="scroll-content">
+            <h3>What's this about?</h3>
+            <p>It's like Hot Potato, but Van City style. The timer is ticking, the pressure is building, and if it blows up on you... Sorry bud!</p>
+            <h3>🔥 The Drill:</h3>
+            <ul>
+                <li><b>Setup:</b> Pick your BC regions and decide if you want "Dares" enabled.</li>
+                <li><b>Pick the Pace:</b> How fast are we going? Sunday drive or full send?</li>
+                <li><b>Get a Topic:</b> Like "Things expensive in Vancouver" or "Hiking gear brands".</li>
+                <li><b>The Ticking Starts:</b> The sound starts slow but speeds up like the Skytrain. Get moving!</li>
+                <li><b>Say & Pass:</b> Say a word related to the topic starting with the letter shown, then toss that phone.</li>
+            </ul>
+            <h3>¡KA-BOOM! It blew up:</h3>
+            <p>Whoever is holding it when it blows has to finish their drink or do a dare. No complaining, ya hoser.</p>
+        </div>
+        <button onclick="showScreen('screen-home')">BACK</button>
+    </div>
+
+    <!-- INSTALAR -->
+    <div id="screen-install" class="screen">
+        <h2 style="margin-bottom: 10px;">INSTALL APP</h2>
+        <div class="scroll-content">
+            <p>Make it look beauty on your home screen without browser bars:</p>
+            <h3>🍎 IPHONE (iOS):</h3>
+            <ol>
+                <li>Open in <b>Safari</b>.</li>
+                <li>Tap <b>"Share"</b> (the arrow up icon ⬆️).</li>
+                <li>Scroll down to <b>"Add to Home Screen"</b>.</li>
+                <li>Tap <b>"Add"</b>.</li>
+            </ol>
+            <h3>🤖 ANDROID:</h3>
+            <ol>
+                <li>Open in <b>Chrome</b>.</li>
+                <li>Tap the <b>3 dots</b> (⋮) top right.</li>
+                <li>Find <b>"Install app"</b> or "Add to Home screen".</li>
+                <li>Confirm, bud.</li>
+            </ol>
+        </div>
+        <button onclick="showScreen('screen-home')">BACK</button>
+    </div>
+
+    <!-- SETUP -->
+    <div id="screen-setup" class="screen">
+        <h2>WHO'S PLAYING?</h2>
+        <p style="font-size: 0.8rem; margin-top: -10px; margin-bottom: 10px; color:#555;">Select BC regions and options:</p>
+        
+        <div class="region-grid">
+            <!-- Regiones adaptadas a BC/Canadá -->
+            <div class="region-option"><input type="checkbox" id="reg-general" value="general" checked><label for="reg-general">🇨🇦 Great White North (General)</label></div>
+            <div class="region-option"><input type="checkbox" id="reg-paisa" value="paisa"><label for="reg-paisa">☔ Raincouver (Downtown/West End)</label></div>
+            <div class="region-option"><input type="checkbox" id="reg-rolo" value="rolo"><label for="reg-rolo">🌉 The Burbs (Burnaby/Surrey/Rich)</label></div>
+            <div class="region-option"><input type="checkbox" id="reg-costeno" value="costeno"><label for="reg-costeno">🏔️ The Mountains (North Shore/Whistler)</label></div>
+            <div class="region-option"><input type="checkbox" id="reg-valluno" value="valluno"><label for="reg-valluno">🌊 The Island (Victoria/Tofino)</label></div>
+            <div class="region-option"><input type="checkbox" id="reg-santander" value="santander"><label for="reg-santander">🍷 The Interior (Okanagan/Kelowna)</label></div>
+        </div>
+
+        <!-- OPCIÓN PENITENCIAS (DARES) -->
+        <div style="width: 100%; margin-bottom: 20px;">
+            <div class="region-option penitencia-check">
+                <input type="checkbox" id="opt-penitencias" value="penitencias" checked>
+                <label for="opt-penitencias" style="font-weight:900;">😈 ACTIVATE DARES!</label>
+            </div>
+        </div>
+
+        <h2>HOW FAST, EH?</h2>
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+            <button class="btn-peque" onclick="this.blur(); configurarYJugar('peque')">FULL SEND! 🔥 (Fast)</button>
+            <button class="btn-medio" onclick="this.blur(); configurarYJugar('medio')">JUST A RIP 🤙 (Normal)</button>
+            <button class="btn-grande" onclick="this.blur(); configurarYJugar('grande')">SUNDAY DRIVE 🐢 (Slow)</button>
+        </div>
+        <button onclick="showScreen('screen-home')" style="background:transparent; color:#555; font-size:0.8rem; border:none; box-shadow:none; margin-top:10px;">Go back</button>
+    </div>
+
+    <!-- RULETA -->
+    <div id="screen-roulette" class="screen">
+        <h2>THE TOPIC IS:</h2>
+        <div class="card"><div id="tema-display">...</div></div>
+        <div id="controles-tema" style="display:none; width:100%; flex-direction:column; gap:10px;">
+            <button onclick="iniciarJuego()">START THE TIMER!</button>
+            <button onclick="girarRuleta()" class="btn-secondary">SPIN AGAIN</button>
+            <button onclick="showScreen('screen-setup')" style="background:transparent; border:none; color:#555; font-size:0.8rem; box-shadow:none; margin-top:10px;">Change Setup</button>
+        </div>
+    </div>
+
+    <!-- JUEGO (GAME SCREEN) -->
+    <div id="screen-game" class="screen">
+        <h3 id="tema-juego" style="color:#D32F2F; text-transform:uppercase; font-size:0.9rem;">TOPIC</h3>
+        <div class="card"><div id="letra-display" class="big-text">A</div></div>
+        <button onclick="cambiarLetra()" style="height:120px; font-size:1.8rem;">NEXT LETTER ➡️</button>
+        
+        <!-- BOTÓN OMITIR -->
+        <button onclick="omitirLetra()" class="btn-omitir">
+            SKIP IT! 😱
+            <span style="display:block; font-size:0.6rem; font-weight:normal; margin-top:3px;">YOU LOSE TIME, BUD!</span>
+        </button>
+
+        <button onclick="cancelarPartida()" class="link-discreto" style="margin-top:15px; color:#D32F2F; font-weight:bold;">🛑 End Game</button>
+    </div>
+
+    <!-- FINAL -->
+    <div id="screen-end" class="screen">
+        <h1 style="font-size:4rem; margin:0;">KA-BOOM!</h1>
+        <h2 style="margin-top:-10px; color:#555;">SORRY BUD.</h2>
+        <div class="card">
+            <div id="resultado-final" style="font-size:1.3rem; font-weight:bold; line-height:1.2;">FINISH YOUR DRINK OR DO THE DARE</div>
+        </div>
+        <button onclick="otraRonda()">ANOTHER ROUND!</button>
+        <button onclick="showScreen('screen-setup')" class="btn-secondary">CHANGE SETUP</button>
+        <button onclick="showScreen('screen-sugerencias')" class="link-discreto">Report a bug or suggest a topic</button>
+    </div>
+
+    <!-- SUGERENCIAS -->
+    <div id="screen-sugerencias" class="screen">
+        <h2 style="font-size:1.5rem; margin-bottom:10px;">SUGGESTION BOX</h2>
+        <p style="font-family:sans-serif; font-size:0.9rem; margin-top:0; margin-bottom:20px; line-height:1.4; color:#555;">Missing good topics? Got a wicked dare idea? <br> Let us know, eh!</p>
+        <form id="form-sugerencias" action="https://formspree.io/f/mzdbjdbd" method="POST" style="width:100%;">
+            <input type="hidden" name="form-name" value="sugerencias_sorrybud" />
+            <textarea name="mensaje" placeholder="Ex: Add topics about the ferry lineup..." required></textarea>
+            <button type="submit" style="background:#4CAF50; margin-top:10px; border-color:#222;">SEND IT</button>
+        </form>
+        <button onclick="showScreen('screen-home')" style="background:transparent; border:none; text-decoration:underline; box-shadow:none; margin-top:15px; color:#555;">Back without sending</button>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const CANTIDAD_MEMES = 20; 
+
+        // --- MOTOR DE AUDIO ---
+        // NOTA PARA EL USUARIO: Reemplaza los archivos en la carpeta 'memes/' 
+        // con sonidos divertidos canadienses (ej. "Take off eh!", sonidos de hockey, etc.)
+        let audioCtx = null;
+        let backupAudio = new Audio('memes/1.mp3'); 
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            backupAudio.load(); 
+        }
+
+        // Sonido del reloj (TIC TAC)
+        function playTickSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle'; 
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1); 
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        // Sonido de penalización por omitir
+        function playPenaltySound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
+            osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.4); 
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        // Sonido de explosión sintética
+        function playSyntheticExplosion() {
+            if (!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 1000;
+            filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 1);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function compartirApp() {
+            const shareData = { title: 'Sorry Bud!', text: 'Careful, she\'s gonna blow! Let\'s play a round, bud.', url: window.location.href };
+            if (navigator.share) {
+                navigator.share(shareData).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert("Link copied. Pass it on, eh!");
+            }
+        }
+
+        function actualizarApp() {
+            const btn = document.getElementById('btn-update');
+            btn.innerText = "⏳ Checking, eh...";
+            setTimeout(() => { window.location.reload(true); }, 800);
+        }
+
+        function showScreen(id) {
+            if (document.activeElement) document.activeElement.blur();
+            window.getSelection().removeAllRanges();
+            
+            // REPAINT HACK (Ocultar/Mostrar body para forzar renderizado en móviles viejos)
+            document.body.style.display = 'none';
+            document.body.offsetHeight; 
+            document.body.style.display = 'flex';
+
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- DATOS ADAPTADOS A CANADÁ / VANCOUVER ---
+
+        // Base de datos de PENITENCIAS (Dares) - Adaptadas a cultura Canadiense/BC
+        const DB_PENITENCIAS = [
+            "Apologize sincerely to every person playing right now",
+            "Do 10 squat jumps like you're training for ski season",
+            "Sing the first verse of 'O Canada' loudly",
+            "Imitate a moose call as best you can",
+            "Chug whatever is in your drink (or a glass of milk)",
+            "Talk like a stereotypical hockey player for 2 rounds",
+            "Let the person to your right send a text from your phone",
+            "Act out a scene of someone waiting for a late bus in the rain",
+            "Do a plank for 45 seconds without complaining",
+            "Pretend to be a very aggressive Canada Goose for 1 minute",
+            "Name 5 Canadian Prime Ministers in 10 seconds or drink again",
+            "Let someone draw a maple leaf on your arm with a marker",
+            "Imitate a barista at an expensive coffee shop taking a complex order",
+            "Humblebrag about something ridiculous (e.g., how much rent you pay)",
+            "Give a 1-minute speech on why Vancouver is the best city on earth",
+            "Act out slipping on black ice slowly",
+            "Do the 'Skytrain stumble' walk across the room",
+            "Pretend you are commentating the final minute of a tied hockey game",
+            "Give a shoulder massage to the person on your left for 1 minute",
+            "Post a selfie with a caption about how much you love rain",
+            "Pretend to be an American tourist confused about Canadian money",
+            "Drink a shot of maple syrup (if available, otherwise any shot)",
+            "Stand on one leg (like a heron) until your next turn",
+            "Confess the most 'unsanctimonious' thing you've done this week",
+            "Pretend to be Ryan Reynolds filming a gin commercial",
+            "Yell 'SORRY!' out the window or door as loud as you can",
+            "Act like a yoga instructor leading a difficult pose",
+            "Try to touch your toes without bending your knees (ski flexibility test)",
+            "Let the group DM a random emoji to the last person you texted",
+            "Pretend you are freezing cold and shivering violently for a whole round",
+            "Explain the rules of curling to the group (make it up if you don't know)",
+            "Do 5 pushups for every time you said 'eh' in the last 5 minutes (group decides count)",
+            "Imitate Seth Rogen's laugh",
+            "Pretend you just bit into a very hot Timbit",
+            "Act like a bear looking for food in a campsite",
+            "Pretend to be a pretentious craft beer snob tasting a new IPA",
+            "Do the 'paddle boarder falling off' mime",
+            "Finish your drink. No arguments, bud."
+        ];
+
+        let bolsaPenitencias = [];
+
+        function llenarBolsaPenitencias() {
+            bolsaPenitencias = [...DB_PENITENCIAS];
+            bolsaPenitencias.sort(() => Math.random() - 0.5);
+        }
+
+        // Base de datos de TEMAS - Divididos por regiones de BC/Canadá
+        const DB_TEMAS = {
+            // General Canada
+            general: ["Famous Canadian Actors/Musicians", "Items on Tim Hortons Menu", "Stereotypical Canadian Things", "Types of snow or winter weather", "Canadian Cities (outside BC)", "Things you say when apologizing", "Brands of Winter Jackets", "Famous Hockey Players (All time)", "Canadian foods (Poutine, Nanaimo bars, etc.)", "Canadian TV Shows (Schitt's Creek, etc.)", "Things found in a hockey bag", "Canadian slang words (Keener, Toque...)", "Reasons to hate Toronto", "Wild animals in Canada", "Olympic sports Canada is good at", "Things you buy at Dollarama", "Canadian Prime Ministers (Any)", "Types of beer popular in Canada"],
+            
+            // Raincouver (Downtown/West End)
+            paisa: ["Things that are ridiculously expensive in Vancouver", "Skytrain Stations", "Reasons the bus is late", "Vancouver Neighbourhoods", "Craft Breweries in Vancouver", "Expensive Grocery Stores (Whole Foods, etc.)", "Yoga poses", "Things people wear in the rain", "Famous movies filmed in Vancouver", "Activities for a rainy day", "Types of expensive coffee orders", "Vancouver stereotypes (NIMBYs, etc.)", "Beaches in Vancouver (English Bay, etc.)", "Seawall Landmarks", "Clubs or Bars on Granville Street", "Things tourists do in Vancouver", "Reasons to protest downtown"],
+            
+            // The Burbs (Burnaby/Surrey/Richmond)
+            rolo: ["Shopping Malls (Metrotown, Guildford, etc.)", "Things found at Richmond Night Market", "Cities in Metro Vancouver (Burnaby, Coquitlam...)", "Major roads or highways (Hwy 1, Kingsway...)", "Asian food dishes popular in Richmond", "Surrey stereotypes", "Things to do in Burnaby", "Parks in the suburbs", "Types of cars popular in the burbs", "Suburban transit hubs", "Fast food chains prominent in the suburbs"],
+            
+            // The Mountains (North Shore/Whistler)
+            costeno: ["Ski Resorts in BC", "Hiking gear brands (Arc'teryx, Patagonia...)", "North Shore Hiking Trails", "Mountain biking terms", "Bear safety tips", "Skiing/Snowboarding slang", "Après-ski drinks", "Things found in Whistler Village", "North Vancouver tourist spots (Capilano, Grouse...)", "Reasons to call Search and Rescue", "Types of coniferous trees", "Camping equipment", "Sea to Sky Highway stops"],
+            
+            // The Island (Victoria/Tofino)
+            valluno: ["Things to do in Victoria", "BC Ferries routes or terminals", "Surfing spots near Tofino", "Island towns (Nanaimo, Courtney...)", "Things found on a beach", "Marine life (Orcas, Seals...)", "Activities in Tofino", "Victoria tourist traps", "Things that cause ferry delays", "Hippie/Gulf Island stereotypes", "Types of boats", "Seafood found around the island"],
+            
+            // The Interior (Okanagan/Kelowna)
+            santander: ["Wineries in the Okanagan", "Fruits grown in BC Interior (Peaches, Cherries...)", "Lake activities (Seadoo, boating...)", "Cities in the Interior (Kelowna, Kamloops...)", "Things that happen at Kelowna in summer", "Types of wine", "Road trip snacks", "Lakes in the Interior", "Hot summer weather complaints", "Things associated with houseboats", "Local breweries or cideries in the Interior"]
+        };
+        
+        // Generador de Mazo de Letras (Ajustado ligeramente para inglés, quitando Ñ y ajustando frecuencias)
+        function generarMazoLetras() {
+            let mazo = [];
+            // Comunes en Inglés
+            const comunes = ['E','A','R','I','O','T','N','S','L','C','U','D','P','M','H','G'];
+            // Medias
+            const medias = ['B','F','Y','W','K','V'];
+            // Difíciles/Raras
+            const dificiles = ['X','Z','J','Q'];
+            
+            comunes.forEach(l => mazo.push(l,l,l)); // 3 de cada común
+            medias.forEach(l => mazo.push(l,l));    // 2 de cada media
+            dificiles.forEach(l => mazo.push(l));   // 1 de cada difícil
+            return mazo;
+        }
+
+        let bolsaTemas = [];
+        let bolsaLetras = [];
+        let juegoActivo = false;
+        let tiempoInicio = 0;
+        let duracionTotal = 0;
+        let timerID = null;
+
+        const CONFIG_TIEMPO = {
+            peque: { min: 30, max: 45 }, // Full Send
+            medio: { min: 50, max: 70 }, // Just a Rip
+            grande: { min: 90, max: 130 } // Sunday Drive
+        };
+        let rangoSeleccionado = CONFIG_TIEMPO.medio;
+
+        function armarBolsaTemas() {
+            let nuevaBolsa = [];
+            // Mapeo de los IDs de los checkboxes a las nuevas llaves del objeto DB_TEMAS
+            if(document.getElementById('reg-general').checked) nuevaBolsa.push(...DB_TEMAS.general);
+            if(document.getElementById('reg-paisa').checked) nuevaBolsa.push(...DB_TEMAS.paisa); // Raincouver
+            if(document.getElementById('reg-rolo').checked) nuevaBolsa.push(...DB_TEMAS.rolo); // Burbs
+            if(document.getElementById('reg-costeno').checked) nuevaBolsa.push(...DB_TEMAS.costeno); // Mountains
+            if(document.getElementById('reg-valluno').checked) nuevaBolsa.push(...DB_TEMAS.valluno); // Island
+            if(document.getElementById('reg-santander').checked) nuevaBolsa.push(...DB_TEMAS.santander); // Interior
+
+            if(nuevaBolsa.length === 0) {
+                alert("Hey bud! Pick at least one region, eh?");
+                document.getElementById('reg-general').checked = true;
+                nuevaBolsa.push(...DB_TEMAS.general);
+            }
+            nuevaBolsa.sort(() => Math.random() - 0.5);
+            return nuevaBolsa;
+        }
+
+        function llenarBolsaLetras() { 
+            bolsaLetras = generarMazoLetras();
+            bolsaLetras.sort(() => Math.random() - 0.5); 
+        }
+
+        function sacarDeBolsa(bolsa, funcionLlenado) {
+            // FIX: Validar si la bolsa esta vacía ANTES de sacar
+            if (bolsa.length === 0) {
+                if(funcionLlenado === "temas") { bolsaTemas = armarBolsaTemas(); return bolsaTemas.pop(); }
+                else if(funcionLlenado === "penitencias") { llenarBolsaPenitencias(); return bolsaPenitencias.pop(); }
+                else { funcionLlenado(); } // Llenar letras
+            }
+            
+            // Re-chequeo de seguridad
+            if (bolsa.length === 0) {
+                 if(funcionLlenado === "temas") bolsaTemas = armarBolsaTemas();
+                 else if(funcionLlenado === "penitencias") llenarBolsaPenitencias();
+                 else funcionLlenado();
+            }
+
+            const indiceRandom = Math.floor(Math.random() * bolsa.length);
+            const item = bolsa[indiceRandom];
+            bolsa.splice(indiceRandom, 1);
+            return item;
+        }
+
+        window.onload = () => {
+            llenarBolsaLetras();
+            llenarBolsaPenitencias();
+            showScreen('screen-home');
+            document.getElementById('pass-input').disabled = true;
+        };
+
+        function verificarClave() {
+            showScreen('screen-home');
+        }
+
+        function configurarYJugar(tipo) {
+            initAudio();
+            if(tipo === 'peque') rangoSeleccionado = CONFIG_TIEMPO.peque;
+            else if(tipo === 'medio') rangoSeleccionado = CONFIG_TIEMPO.medio;
+            else if(tipo === 'grande') rangoSeleccionado = CONFIG_TIEMPO.grande;
+
+            bolsaTemas = armarBolsaTemas();
+            girarRuleta();
+            showScreen('screen-roulette');
+        }
+
+        function otraRonda() {
+            girarRuleta();
+            showScreen('screen-roulette');
+        }
+
+        function cancelarPartida() {
+            juegoActivo = false;
+            clearTimeout(timerID);
+            showScreen('screen-setup');
+        }
+
+        function girarRuleta() {
+            document.getElementById('controles-tema').style.display = 'none';
+            const display = document.getElementById('tema-display');
+            let i = 0;
+            // Textos de relleno para la animación de la ruleta en inglés
+            const fillerTexts = ["Loading...", "Finding Topic...", "Spinning...", "Checking maple reserves...", "Polishing ice...", "Consulting beaver..."];
+            
+            const animacion = setInterval(() => {
+                display.innerText = fillerTexts[Math.floor(Math.random()*fillerTexts.length)];
+                i++;
+                if (i > 15) {
+                    clearInterval(animacion);
+                    const temaFinal = sacarDeBolsa(bolsaTemas, "temas");
+                    display.innerText = temaFinal;
+                    document.getElementById('controles-tema').style.display = 'flex';
+                }
+            }, 80);
+        }
+
+        function iniciarJuego() {
+            initAudio();
+            showScreen('screen-game');
+            document.getElementById('tema-juego').innerText = document.getElementById('tema-display').innerText;
+            juegoActivo = true;
+            cambiarLetra();
+            
+            const segundosRandom = Math.floor(Math.random() * (rangoSeleccionado.max - rangoSeleccionado.min + 1)) + rangoSeleccionado.min;
+            duracionTotal = segundosRandom * 1000;
+            tiempoInicio = Date.now();
+            
+            motorDeJuego(); 
+        }
+
+        function motorDeJuego() {
+            if (!juegoActivo) return;
+
+            const ahora = Date.now();
+            const tiempoTranscurrido = ahora - tiempoInicio;
+            const tiempoRestante = duracionTotal - tiempoTranscurrido;
+
+            if (tiempoRestante <= 0) {
+                finJuego();
+                return;
+            }
+
+            playTickSound();
+
+            const porcentajeCompletado = tiempoTranscurrido / duracionTotal; 
+            const delayMax = 1200; 
+            const delayMin = 100;
+            let proximoDelay = delayMax - (Math.pow(porcentajeCompletado, 2.5) * (delayMax - delayMin));
+            
+            if (proximoDelay < 100) proximoDelay = 100;
+
+            if (tiempoRestante < proximoDelay) {
+                timerID = setTimeout(motorDeJuego, tiempoRestante);
+            } else {
+                timerID = setTimeout(motorDeJuego, proximoDelay);
+            }
+        }
+
+        function cambiarLetra() {
+            const letraFinal = sacarDeBolsa(bolsaLetras, llenarBolsaLetras);
+            document.getElementById('letra-display').innerText = letraFinal ? letraFinal : "A";
+        }
+
+        function omitirLetra() {
+            if (!juegoActivo) return;
+            playPenaltySound();
+            const penalizacion = duracionTotal * 0.15;
+            tiempoInicio -= penalizacion; 
+            cambiarLetra();
+        }
+
+        function finJuego() {
+            juegoActivo = false;
+            clearTimeout(timerID);
+            
+            // 1. SONIDO DE EXPLOSIÓN SINTÉTICA
+            playSyntheticExplosion();
+
+            // 2. SONIDO DE MEME (Secundario) - Reemplazar estos con audios canadienses
+            let randomMeme = Math.floor(Math.random() * CANTIDAD_MEMES) + 1;
+            let memeAudio = new Audio(`memes/${randomMeme}.mp3`);
+            let backupAudio = new Audio('memes/1.mp3');
+            
+            memeAudio.onerror = function() {
+                backupAudio.currentTime = 0;
+                backupAudio.play().catch(e => console.log("Backup audio error:", e));
+            };
+            
+            setTimeout(() => {
+                memeAudio.play().catch(e => {
+                    backupAudio.currentTime = 0;
+                    backupAudio.play();
+                });
+            }, 800);
+            
+            // VISUAL
+            const hayPenitencias = document.getElementById('opt-penitencias').checked;
+            const resultadoDisplay = document.getElementById('resultado-final');
+            const mensajeModal = document.getElementById('modal-mensaje');
+            const modal = document.getElementById('modal-explosion');
+            
+            let textoResultado = "";
+            
+            if (hayPenitencias) {
+                const penitencia = sacarDeBolsa(bolsaPenitencias, "penitencias");
+                textoResultado = "😈 DARE: " + penitencia.toUpperCase();
+                resultadoDisplay.style.color = "#D32F2F";
+            } else {
+                textoResultado = "FINISH YOUR DRINK OR DO A DARE";
+                resultadoDisplay.style.color = "#222";
+            }
+
+            resultadoDisplay.innerText = textoResultado;
+            mensajeModal.innerText = textoResultado;
+
+            showScreen('screen-end');
+            
+            // MOSTRAR MODAL
+            modal.classList.add('active');
+
+            if(navigator.vibrate) navigator.vibrate([1000, 200, 1000]);
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-explosion').classList.remove('active');
+            showScreen('screen-end'); 
+        }
+
+        function aceptarReto() {
+            cerrarModal();
+        }
+
+        function soyUnaLoca() {
+            // NOTA: Reemplazar 15a.mp3 con un audio de alguien diciendo "Take off!" o similar
+            let audioLoca = new Audio('memes/15a.mp3');
+            audioLoca.play().catch(e => console.log(e));
+            cerrarModal();
+        }
+
+        const formSugerencias = document.getElementById("form-sugerencias");
+        formSugerencias.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = formSugerencias.querySelector("button");
+            const originalText = btn.innerText;
+            btn.innerText = "Sending, bud...";
+            btn.disabled = true;
+
+            const data = new FormData(formSugerencias);
+            try {
+                await fetch(formSugerencias.action, {
+                    method: formSugerencias.method,
+                    body: data,
+                    headers: { 'Accept': 'application/json' }
+                });
+                alert("Message received! Thanks, bud.");
+                formSugerencias.reset();
+                showScreen('screen-home'); 
+            } catch (error) {
+                alert("Whoops, bit of a kerfuffle sending that. Try again later, eh?");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
